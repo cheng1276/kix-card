@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>關西接機應答卡</title>
+<meta name="description" content="關西機場接機用：點一下就用標準日文唸出回話，附中文意思與羅馬拼音。可離線使用。">
+<meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1524" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="接機應答">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-180.png">
+<style>
+/* Layout: an arrivals-hall phrasebook. Sticky sound controls on top, the meeting slip and
+   on-device details next, then phrase buttons grouped in the order things happen after landing. */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --ink: #13203a;
+  --muted: #56627a;
+  --line: #d3dae5;
+  --signal: #e9a514;
+  --signal-ink: #1d1503;
+  --signal-soft: #fbefd1;
+  --focus: #2b5fd9;
+  --font-zh: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-ja: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+  --font-latin: ui-rounded, "SF Pro Rounded", "Helvetica Neue", Arial, sans-serif;
+  --radius: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1524;
+    --surface: #152039;
+    --ink: #edf1f8;
+    --muted: #9ca8bf;
+    --line: #27365a;
+    --signal: #f3b73a;
+    --signal-ink: #1d1503;
+    --signal-soft: #3a2f12;
+    --focus: #8fb0ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1524;
+  --surface: #152039;
+  --ink: #edf1f8;
+  --muted: #9ca8bf;
+  --line: #27365a;
+  --signal: #f3b73a;
+  --signal-ink: #1d1503;
+  --signal-soft: #3a2f12;
+  --focus: #8fb0ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg);
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-zh);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  z-index: 10;
+  background: var(--bg);
+}
+[hidden] { display: none !important; }
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+[lang="ja"] { font-family: var(--font-ja); }
+.ro { font-family: var(--font-latin); }
+
+/* Header */
+.masthead { display: flex; flex-direction: column; gap: 10px; }
+.board {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-family: var(--font-latin);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.board span {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+.board span.hi { background: var(--signal); color: var(--signal-ink); }
+h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.lede { margin: 0; color: var(--muted); max-width: 60ch; }
+.offline {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+.offline.ok { border-color: var(--signal); color: var(--ink); }
+.offline .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.offline.ok .dot { background: var(--signal); }
+
+/* Sticky sound bar */
+.bar {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-block: 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 9px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn.stop { background: var(--signal); color: var(--signal-ink); border-color: var(--signal); }
+.btn:focus-visible, .phrase:focus-visible, .heard:focus-visible, .chip:focus-visible,
+.step button:focus-visible, .field input:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.now {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.now strong { color: var(--ink); }
+
+/* Slip and on-device details */
+.panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.panel h2 { margin: 0 0 8px; font-size: 1rem; }
+.panel ol, .panel ul { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.panel li { min-width: 0; }
+.num {
+  font-family: var(--font-latin);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  user-select: all;
+  -webkit-user-select: all;
+}
+.inline-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.inline-actions .btn { font-size: 0.85rem; min-height: 40px; padding: 7px 12px; }
+.hint { font-size: 0.85rem; color: var(--muted); margin: 8px 0 0; }
+.notice {
+  background: var(--signal-soft);
+  border: 1px solid var(--signal);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+.mine { display: flex; flex-direction: column; gap: 12px; }
+.mine-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 10px;
+}
+.step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 6px 6px 12px;
+  min-width: 0;
+}
+.step .lbl { font-weight: 700; font-size: 0.95rem; }
+.step .ctl { display: flex; align-items: center; gap: 6px; }
+.step button {
+  appearance: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.step output {
+  min-width: 1.6em;
+  text-align: center;
+  font-family: var(--font-latin);
+  font-weight: 700;
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-weight: 700; font-size: 0.95rem; }
+.field input {
+  font: inherit;
+  font-family: var(--font-latin);
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  width: 100%;
+  max-width: 260px;
+  text-transform: uppercase;
+}
+.field .err { font-size: 0.85rem; color: var(--ink); }
+
+/* Group nav */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Phrase groups */
+section { display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 124px; }
+section h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  scroll-margin-top: 124px;
+}
+section h2 small { font-size: 0.8rem; color: var(--muted); font-weight: 400; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+  gap: 10px;
+}
+.phrase {
+  appearance: none;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 52px 14px 16px;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.phrase .zh { font-weight: 700; font-size: 1.08rem; line-height: 1.4; }
+.phrase .ja { font-size: 1.05rem; line-height: 1.5; font-weight: 500; }
+.phrase .ro { font-size: 0.82rem; color: var(--muted); line-height: 1.4; }
+.phrase .zh, .phrase .ja, .phrase .ro { overflow-wrap: anywhere; }
+.phrase .tag {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.spk {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--ink);
+}
+.spk svg { width: 16px; height: 16px; }
+.phrase.is-speaking { border-color: var(--signal); background: var(--signal-soft); box-shadow: inset 4px 0 0 var(--signal); }
+.phrase.is-speaking .spk { background: var(--signal); color: var(--signal-ink); }
+@media (hover: hover) { .phrase:hover { border-color: var(--muted); } }
+
+/* Driver lines */
+.heard-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.heard {
+  appearance: none;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 12px 44px 12px 4px;
+  position: relative;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+}
+.heard .ja { font-size: 1.05rem; font-weight: 700; }
+.heard .zh { font-size: 0.95rem; }
+.heard .ro { font-size: 0.8rem; color: var(--muted); }
+.heard .spk { top: 12px; right: 4px; background: var(--surface); }
+.heard.is-speaking { background: var(--signal-soft); }
+.heard.is-speaking .spk { background: var(--signal); color: var(--signal-ink); }
+
+.foot { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+.foot p { margin: 0; max-width: 70ch; }
+
+@media (prefers-reduced-motion: reduce) { .phrase { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <div class="board" aria-label="接機地點">
+      <span>KIX 第1航廈 1F</span><span>國際線</span><span class="hi">南到着口</span><span>MK 接機服務</span>
+    </div>
+    <h1>關西接機應答卡</h1>
+    <p class="lede">司機用日文打電話來時，點一下您要說的話，這台裝置就會用標準日文唸出來。每句都附中文意思和羅馬拼音。</p>
+    <div class="offline" id="offlineBadge" role="status"><span class="dot" aria-hidden="true"></span><span id="offlineText">正在準備離線使用…</span></div>
+  </header>
+
+  <div class="bar" role="region" aria-label="發音控制">
+    <button class="btn" id="slowBtn" type="button" aria-pressed="false">慢速</button>
+    <button class="btn stop" id="stopBtn" type="button">停止</button>
+    <button class="btn" id="testBtn" type="button">測試發音</button>
+    <div class="now" id="nowLine" aria-live="polite">點任何一句就會唸出日文。</div>
+  </div>
+
+  <div class="notice" id="noSpeech" hidden>這個瀏覽器沒有語音朗讀功能。請改用 iPad 或 iPhone 的 Safari 打開這一頁；來不及的話，照著每句下方的羅馬拼音唸。</div>
+  <div class="notice" id="noVoice" hidden>找不到日文語音，唸出來可能不是日文。請到「設定 &gt; 輔助使用 &gt; 朗讀內容 &gt; 聲音 &gt; 日文」下載一個聲音，再回來按「測試發音」。</div>
+
+  <div class="panel">
+    <div>
+      <h2>通話時怎麼用</h2>
+      <ol>
+        <li>司機打來時，iPhone 接起電話後按「擴音」。</li>
+        <li>在 iPad 開這一頁，點您要說的句子，讓 iPad 對著 iPhone 唸。</li>
+        <li>聽不懂司機說什麼，就點「不太懂日文」那幾句，或對照最下面的「司機可能說的話」。</li>
+      </ol>
+      <div class="inline-actions">
+        <button class="btn" id="wakeBtn" type="button" aria-pressed="false">讓螢幕保持開啟</button>
+      </div>
+      <p class="hint" id="wakeHint">在 Safari 按「分享 &gt; 加入主畫面」，之後從主畫面圖示打開，沒網路也能用。</p>
+    </div>
+    <div>
+      <h2>MK 接機服務</h2>
+      <ul>
+        <li>選了接機服務（ミートサービス）時，司機會拿寫著您名字的貼紙，在第 1 航廈 1 樓「南到着口」附近等。</li>
+        <li>空港定額是當天付款，過路費另計。</li>
+        <li>從海外號碼打給 MK：<span class="num" id="mkNum">+81-75-778-4145</span></li>
+      </ul>
+      <div class="inline-actions">
+        <button class="btn" id="copyBtn" type="button">複製 MK 電話</button>
+      </div>
+      <p class="hint" id="copyHint">要打電話請自己撥號，這一頁不會幫您撥出。</p>
+    </div>
+  </div>
+
+  <div class="panel mine" aria-labelledby="mineTitle">
+    <div>
+      <h2 id="mineTitle">我的資料</h2>
+      <p class="hint">只存在這台裝置的瀏覽器裡，不會上傳，也不會出現在公開網頁上。設定後，「找司機」和「班機狀況」裡的句子會自動換成您的人數、行李和航班。</p>
+    </div>
+    <div class="mine-grid">
+      <div class="step"><span class="lbl" id="lblA">大人</span><span class="ctl"><button type="button" id="aMinus" aria-label="大人減一">−</button><output id="aVal" aria-labelledby="lblA">1</output><button type="button" id="aPlus" aria-label="大人加一">+</button></span></div>
+      <div class="step"><span class="lbl" id="lblC">小孩</span><span class="ctl"><button type="button" id="cMinus" aria-label="小孩減一">−</button><output id="cVal" aria-labelledby="lblC">0</output><button type="button" id="cPlus" aria-label="小孩加一">+</button></span></div>
+      <div class="step"><span class="lbl" id="lblS">行李箱</span><span class="ctl"><button type="button" id="sMinus" aria-label="行李箱減一">−</button><output id="sVal" aria-labelledby="lblS">1</output><button type="button" id="sPlus" aria-label="行李箱加一">+</button></span></div>
+      <div class="step"><span class="lbl" id="lblH">隨身行李</span><span class="ctl"><button type="button" id="hMinus" aria-label="隨身行李減一">−</button><output id="hVal" aria-labelledby="lblH">0</output><button type="button" id="hPlus" aria-label="隨身行李加一">+</button></span></div>
+    </div>
+    <div class="field">
+      <label for="flightInput">航班號碼</label>
+      <input id="flightInput" name="flight" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="例：AB123">
+      <span class="err" id="flightErr" hidden>請輸入航空公司代碼加數字，例如 AB123。</span>
+    </div>
+  </div>
+
+  <nav class="chips" id="chips" aria-label="情境分類"></nav>
+
+  <div id="groups" style="display:flex;flex-direction:column;gap:22px;"></div>
+
+  <section id="driver" aria-labelledby="driverTitle">
+    <h2 id="driverTitle">司機可能說的話 <small>點一下先聽聽看發音</small></h2>
+    <div class="heard-list" id="heardList"></div>
+  </section>
+
+  <footer class="foot">
+    <p>按了沒聲音：先把音量調大、關閉靜音，再按「測試發音」。還是沒聲音就照羅馬拼音唸。</p>
+    <p>日文用的是對計程車司機說話時一般的禮貌說法（です／ます）。</p>
+  </footer>
+</div>
+
+<script>
+/* Sentence builders for the on-device "我的資料" values. Pure functions, no DOM. */
+var KixBuild = (function () {
+  var DIG = ["", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
+  var DIG_R = ["", "ichi", "ni", "san", "yon", "go", "roku", "nana", "hachi", "kyuu"];
+  var DIG0 = ["ゼロ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"];
+  var DIG0_R = ["zero", "ichi", "ni", "san", "yon", "go", "roku", "nana", "hachi", "kyuu"];
+  var PEOPLE = {
+    1: ["ひとり", "hitori"], 2: ["ふたり", "futari"], 3: ["さんにん", "sannin"], 4: ["よにん", "yonin"],
+    5: ["ごにん", "gonin"], 6: ["ろくにん", "rokunin"], 7: ["ななにん", "nananin"], 8: ["はちにん", "hachinin"],
+    9: ["きゅうにん", "kyuunin"], 10: ["じゅうにん", "juunin"]
+  };
+  var TSU = {
+    1: ["ひとつ", "hitotsu"], 2: ["ふたつ", "futatsu"], 3: ["みっつ", "mittsu"], 4: ["よっつ", "yottsu"],
+    5: ["いつつ", "itsutsu"], 6: ["むっつ", "muttsu"], 7: ["ななつ", "nanatsu"], 8: ["やっつ", "yattsu"],
+    9: ["ここのつ", "kokonotsu"]
+  };
+  var LET = {
+    A: ["エー", "ee"], B: ["ビー", "bii"], C: ["シー", "shii"], D: ["ディー", "dii"], E: ["イー", "ii"],
+    F: ["エフ", "efu"], G: ["ジー", "jii"], H: ["エイチ", "eichi"], I: ["アイ", "ai"], J: ["ジェー", "jee"],
+    K: ["ケー", "kee"], L: ["エル", "eru"], M: ["エム", "emu"], N: ["エヌ", "enu"], O: ["オー", "oo"],
+    P: ["ピー", "pii"], Q: ["キュー", "kyuu"], R: ["アール", "aaru"], S: ["エス", "esu"], T: ["ティー", "tii"],
+    U: ["ユー", "yuu"], V: ["ブイ", "bui"], W: ["ダブリュー", "daburyuu"], X: ["エックス", "ekkusu"],
+    Y: ["ワイ", "wai"], Z: ["ゼット", "zetto"]
+  };
+
+  // 1..9999 -> [kana, romaji]
+  function num(n) {
+    var k = [], r = [];
+    var th = Math.floor(n / 1000), h = Math.floor((n % 1000) / 100), t = Math.floor((n % 100) / 10), u = n % 10;
+    if (th) {
+      var a = { 1: ["せん", "sen"], 3: ["さんぜん", "sanzen"], 8: ["はっせん", "hassen"] }[th] || [DIG[th] + "せん", DIG_R[th] + "sen"];
+      k.push(a[0]); r.push(a[1]);
+    }
+    if (h) {
+      var b = { 1: ["ひゃく", "hyaku"], 3: ["さんびゃく", "sanbyaku"], 6: ["ろっぴゃく", "roppyaku"], 8: ["はっぴゃく", "happyaku"] }[h] || [DIG[h] + "ひゃく", DIG_R[h] + "hyaku"];
+      k.push(b[0]); r.push(b[1]);
+    }
+    if (t) {
+      var c = t === 1 ? ["じゅう", "juu"] : [DIG[t] + "じゅう", DIG_R[t] + "juu"];
+      k.push(c[0]); r.push(c[1]);
+    }
+    if (u) { k.push(DIG[u]); r.push(DIG_R[u]); }
+    return [k.join(""), r.join("-")];
+  }
+
+  function people(a, c) {
+    var t = a + c;
+    if (c === 0) {
+      return {
+        ja: "大人" + a + "人です。",
+        say: "おとな、" + PEOPLE[a][0] + "です。",
+        ro: "Otona " + PEOPLE[a][1] + " desu.",
+        zh: a + " 位大人。"
+      };
+    }
+    return {
+      ja: "大人" + a + "人と子ども" + c + "人の" + t + "人です。",
+      say: "おとな" + PEOPLE[a][0] + "と、こども" + PEOPLE[c][0] + "の、" + PEOPLE[t][0] + "です。",
+      ro: "Otona " + PEOPLE[a][1] + " to kodomo " + PEOPLE[c][1] + " no " + PEOPLE[t][1] + " desu.",
+      zh: "我們是 " + a + " 位大人、" + c + " 位小孩，共 " + t + " 人。"
+    };
+  }
+
+  function luggage(s, h) {
+    if (s > 0 && h > 0) {
+      return {
+        ja: "スーツケース" + s + "つと手荷物" + h + "つがあります。",
+        say: "スーツケース" + TSU[s][0] + "と、てにもつ" + TSU[h][0] + "があります。",
+        ro: "Suutsukeesu " + TSU[s][1] + " to tenimotsu " + TSU[h][1] + " ga arimasu.",
+        zh: "有 " + s + " 個行李箱和 " + h + " 件隨身行李。"
+      };
+    }
+    if (s > 0) {
+      return {
+        ja: "スーツケースが" + s + "つあります。",
+        say: "スーツケースが、" + TSU[s][0] + "あります。",
+        ro: "Suutsukeesu ga " + TSU[s][1] + " arimasu.",
+        zh: "有 " + s + " 個行李箱。"
+      };
+    }
+    if (h > 0) {
+      return {
+        ja: "手荷物が" + h + "つあります。",
+        say: "てにもつが、" + TSU[h][0] + "あります。",
+        ro: "Tenimotsu ga " + TSU[h][1] + " arimasu.",
+        zh: "有 " + h + " 件隨身行李。"
+      };
+    }
+    return { ja: "荷物はありません。", say: "荷物はありません。", ro: "Nimotsu wa arimasen.", zh: "沒有行李。" };
+  }
+
+  // "AB123", "ab 123", "AB0005" -> sentence, or null if not a valid flight number
+  function parseFlight(raw) {
+    var s = String(raw || "").toUpperCase().replace(/[\s-]/g, "");
+    var m = s.match(/^([A-Z][A-Z0-9]|[0-9][A-Z])(\d{1,4})$/);
+    if (!m) return null;
+    var n = parseInt(m[2], 10);
+    if (!n) return null;
+    return { code: m[1], n: n, digits: m[2] };
+  }
+  function flight(raw) {
+    var f = parseFlight(raw);
+    if (!f) return null;
+    var ck = [], cr = [];
+    f.code.split("").forEach(function (ch) {
+      if (LET[ch]) { ck.push(LET[ch][0]); cr.push(LET[ch][1]); }
+      else { ck.push(DIG0[+ch]); cr.push(DIG0_R[+ch]); }
+    });
+    var nk = num(f.n);
+    var label = f.code + f.digits;
+    return {
+      ja: "飛行機は" + label + "便です。",
+      say: "飛行機は、" + ck.join("") + "、" + nk[0] + "びんです。",
+      ro: "Hikouki wa " + cr.join("-") + " " + nk[1] + " bin desu.",
+      zh: "我搭的是 " + label + " 班機。",
+      label: label
+    };
+  }
+
+  return { num: num, people: people, luggage: luggage, flight: flight, parseFlight: parseFlight };
+})();
+
+
+const DATA = {"reply": [{"group": "接起電話", "items": [{"id": "r01", "zh": "喂，我是有預約 MK 計程車的人。", "ja": "もしもし、MKタクシーを予約している者です。", "say": "もしもし、エムケイタクシーを予約しているものです。", "ro": "Moshi moshi, emu-kei takushii o yoyaku shite iru mono desu."}, {"id": "r02", "zh": "不好意思，我不太懂日文。", "ja": "すみません、日本語があまりわかりません。", "say": "すみません、日本語があまりわかりません。", "ro": "Sumimasen, nihongo ga amari wakarimasen."}, {"id": "r03", "zh": "我在用翻譯 App，請分成短句、慢慢說。", "ja": "翻訳アプリを使っていますので、短く区切って、ゆっくり話していただけますか。", "say": "翻訳アプリを使っていますので、短く区切って、ゆっくり話していただけますか。", "ro": "Hon'yaku apuri o tsukatte imasu node, mijikaku kugitte, yukkuri hanashite itadakemasu ka."}, {"id": "r04", "zh": "不好意思，請再說一次。", "ja": "すみません、もう一度お願いします。", "say": "すみません、もう一度お願いします。", "ro": "Sumimasen, mou ichido onegaishimasu."}, {"id": "r05", "zh": "不好意思，電話聲音有點小，聽不清楚。", "ja": "すみません、お電話が少し遠いようです。", "say": "すみません、お電話が少し遠いようです。", "ro": "Sumimasen, odenwa ga sukoshi tooi you desu."}]}, {"group": "我在哪裡", "items": [{"id": "r06", "zh": "我剛下飛機。", "ja": "今、飛行機を降りたところです。", "say": "今、飛行機を降りたところです。", "ro": "Ima, hikouki o orita tokoro desu."}, {"id": "r07", "zh": "我正在排隊入境審查。", "ja": "今、入国審査の列に並んでいます。", "say": "今、入国審査の列に並んでいます。", "ro": "Ima, nyuukoku shinsa no retsu ni narande imasu."}, {"id": "r08", "zh": "我在等行李出來。", "ja": "今、荷物が出てくるのを待っています。", "say": "今、荷物が出てくるのを待っています。", "ro": "Ima, nimotsu ga dete kuru no o matte imasu."}, {"id": "r09", "zh": "我正在通過海關。", "ja": "今、税関を通っているところです。", "say": "今、税関をとおっているところです。", "ro": "Ima, zeikan o tootte iru tokoro desu."}, {"id": "r10", "zh": "我已經出來，到入境大廳了。", "ja": "今、到着ロビーに出ました。", "say": "今、到着ロビーに出ました。", "ro": "Ima, touchaku robii ni demashita."}, {"id": "r11", "zh": "我在南到着口前面。", "ja": "南到着口の前にいます。", "say": "みなみとうちゃくぐちの、まえにいます。", "ro": "Minami touchaku-guchi no mae ni imasu."}, {"id": "r35", "zh": "我從北到着口出來了，現在往南到着口過去。", "ja": "北到着口に出ました。今から南到着口に向かいます。", "say": "きたとうちゃくぐちに、出ました。今から、みなみとうちゃくぐちに、向かいます。", "ro": "Kita touchaku-guchi ni demashita. Ima kara minami touchaku-guchi ni mukaimasu."}]}, {"group": "還要多久", "items": [{"id": "r12", "zh": "大概再 10 分鐘就能出來。", "ja": "あと10分ほどで出られると思います。", "say": "あと、じゅっぷんほどで、でられるとおもいます。", "ro": "Ato juppun hodo de derareru to omoimasu."}, {"id": "r13", "zh": "大概再 20 分鐘就能出來。", "ja": "あと20分ほどで出られると思います。", "say": "あと、にじゅっぷんほどで、でられるとおもいます。", "ro": "Ato nijuppun hodo de derareru to omoimasu."}, {"id": "r14", "zh": "大概再 30 分鐘就能出來。", "ja": "あと30分ほどで出られると思います。", "say": "あと、さんじゅっぷんほどで、でられるとおもいます。", "ro": "Ato sanjuppun hodo de derareru to omoimasu."}, {"id": "r15", "zh": "看起來還要 1 個小時左右。", "ja": "あと1時間ほどかかりそうです。", "say": "あと、いちじかんほど、かかりそうです。", "ro": "Ato ichi-jikan hodo kakarisou desu."}, {"id": "r36", "zh": "我一出來就馬上去南到着口。", "ja": "出たら、すぐ南到着口に行きます。", "say": "でたら、すぐ、みなみとうちゃくぐちに、いきます。", "ro": "Detara, sugu minami touchaku-guchi ni ikimasu."}]}, {"group": "班機狀況", "items": [{"id": "b_flight", "builder": "flight"}, {"id": "r16", "zh": "飛機已經降落了。", "ja": "飛行機はもう着きました。", "say": "飛行機はもう着きました。", "ro": "Hikouki wa mou tsukimashita."}, {"id": "r17", "zh": "班機延誤了。", "ja": "飛行機が遅れています。", "say": "飛行機が遅れています。", "ro": "Hikouki ga okurete imasu."}, {"id": "r18", "zh": "班機大約晚了 30 分鐘。", "ja": "飛行機が30分ほど遅れています。", "say": "飛行機が、さんじゅっぷんほど遅れています。", "ro": "Hikouki ga sanjuppun hodo okurete imasu."}, {"id": "r19", "zh": "班機大約晚了 1 個小時。", "ja": "飛行機が1時間ほど遅れています。", "say": "飛行機が、いちじかんほど遅れています。", "ro": "Hikouki ga ichi-jikan hodo okurete imasu."}]}, {"group": "找司機", "items": [{"id": "r20", "zh": "不好意思，我沒看到您。您現在在哪裡？", "ja": "すみません、見当たらないのですが、今どちらにいらっしゃいますか。", "say": "すみません、見当たらないのですが、今どちらにいらっしゃいますか。", "ro": "Sumimasen, miataranai no desu ga, ima dochira ni irasshaimasu ka."}, {"id": "b_people", "builder": "people"}, {"id": "b_luggage", "builder": "luggage"}, {"id": "r23", "zh": "我看到您了，馬上過去。", "ja": "見つけました。すぐ行きます。", "say": "見つけました。すぐ行きます。", "ro": "Mitsukemashita. Sugu ikimasu."}]}, {"group": "請稍等", "items": [{"id": "r24", "zh": "不好意思，可以請您稍等一下嗎？", "ja": "すみません、少々お待ちいただけますか。", "say": "すみません、少々お待ちいただけますか。", "ro": "Sumimasen, shoushou omachi itadakemasu ka."}, {"id": "r25", "zh": "我帶小孩去廁所，可以請您等 5 分鐘左右嗎？", "ja": "子どもをトイレに連れて行きますので、5分ほどお待ちいただけますか。", "say": "子どもをトイレに連れて行きますので、ごふんほど、お待ちいただけますか。", "ro": "Kodomo o toire ni tsurete ikimasu node, gofun hodo omachi itadakemasu ka."}, {"id": "r26", "zh": "抱歉讓您久等了。", "ja": "お待たせしてすみません。", "say": "お待たせしてすみません。", "ro": "Omatase shite sumimasen."}]}, {"group": "基本回答", "items": [{"id": "r27", "zh": "是的，沒錯。", "ja": "はい、そうです。", "say": "はい、そうです。", "ro": "Hai, sou desu."}, {"id": "r28", "zh": "不是。", "ja": "いいえ、違います。", "say": "いいえ、違います。", "ro": "Iie, chigaimasu."}, {"id": "r29", "zh": "好的，我知道了。", "ja": "わかりました。", "say": "わかりました。", "ro": "Wakarimashita."}, {"id": "r30", "zh": "謝謝。", "ja": "ありがとうございます。", "say": "ありがとうございます。", "ro": "Arigatou gozaimasu."}]}, {"group": "上車之後", "items": [{"id": "r31", "zh": "麻煩送到預約時登記的目的地。", "ja": "予約の際にお伝えした目的地までお願いします。", "say": "予約の際にお伝えした目的地までお願いします。", "ro": "Yoyaku no sai ni otsutae shita mokutekichi made onegaishimasu."}, {"id": "r32", "zh": "可以刷信用卡嗎？", "ja": "クレジットカードは使えますか。", "say": "クレジットカードは使えますか。", "ro": "Kurejitto kaado wa tsukaemasu ka."}, {"id": "r33", "zh": "我付現金。", "ja": "現金で払います。", "say": "現金で払います。", "ro": "Genkin de haraimasu."}, {"id": "r34", "zh": "請給我收據。", "ja": "領収書をお願いします。", "say": "領収書をお願いします。", "ro": "Ryoushuusho o onegaishimasu."}]}], "driver": [{"id": "d01", "ja": "MKタクシーです。", "say": "エムケイタクシーです。", "zh": "我是 MK 計程車。", "ro": "Emu-kei takushii desu."}, {"id": "d02", "ja": "ご予約のお客様でいらっしゃいますか。", "say": "ご予約のお客様でいらっしゃいますか。", "zh": "請問是有預約的客人嗎？", "ro": "Goyoyaku no okyakusama de irasshaimasu ka."}, {"id": "d03", "ja": "今どちらにいらっしゃいますか。", "say": "今どちらにいらっしゃいますか。", "zh": "您現在在哪裡？", "ro": "Ima dochira ni irasshaimasu ka."}, {"id": "d04", "ja": "南到着口でお待ちしております。", "say": "みなみとうちゃくぐちで、お待ちしております。", "zh": "我在南到着口等您。", "ro": "Minami touchaku-guchi de omachi shite orimasu."}, {"id": "d05", "ja": "お名前のステッカーを持ってお待ちしております。", "say": "お名前のステッカーを持って、お待ちしております。", "zh": "我拿著寫有您名字的貼紙在等您。", "ro": "Onamae no sutekkaa o motte omachi shite orimasu."}, {"id": "d06", "ja": "飛行機はもう着きましたか。", "say": "飛行機はもう着きましたか。", "zh": "飛機已經降落了嗎？", "ro": "Hikouki wa mou tsukimashita ka."}, {"id": "d07", "ja": "何時ごろ出てこられそうですか。", "say": "何時ごろ、出てこられそうですか。", "zh": "您大概幾點能出來？", "ro": "Nanji goro dete korare sou desu ka."}, {"id": "d15", "ja": "出られましたら、お電話ください。", "say": "出られましたら、お電話ください。", "zh": "您出來之後請打電話給我。", "ro": "Deraremashitara, odenwa kudasai."}, {"id": "d08", "ja": "お荷物はいくつですか。", "say": "お荷物はいくつですか。", "zh": "行李有幾件？", "ro": "Onimotsu wa ikutsu desu ka."}, {"id": "d09", "ja": "お車までご案内します。", "say": "お車までご案内します。", "zh": "我帶您去上車。", "ro": "Okuruma made goannai shimasu."}, {"id": "d10", "ja": "シートベルトをお締めください。", "say": "シートベルトをお締めください。", "zh": "請繫好安全帶。", "ro": "Shiito beruto o oshime kudasai."}, {"id": "d11", "ja": "高速道路の料金は別途いただきます。", "say": "高速道路の料金は、別途いただきます。", "zh": "高速公路過路費另外收。", "ro": "Kousoku douro no ryoukin wa betto itadakimasu."}, {"id": "d12", "ja": "お支払いは現金ですか、カードですか。", "say": "お支払いは、現金ですか、カードですか。", "zh": "您要付現金還是刷卡？", "ro": "Oshiharai wa genkin desu ka, kaado desu ka."}, {"id": "d13", "ja": "到着しました。", "say": "到着しました。", "zh": "到了。", "ro": "Touchaku shimashita."}, {"id": "d14", "ja": "お忘れ物のないようお気をつけください。", "say": "お忘れ物のないよう、お気をつけください。", "zh": "請注意不要忘了東西。", "ro": "Owasuremono no nai you oki o tsuke kudasai."}]};
+
+(function () {
+  const synth = ("speechSynthesis" in window) ? window.speechSynthesis : null;
+  const nowLine = document.getElementById("nowLine");
+  const slowBtn = document.getElementById("slowBtn");
+  let slow = false;
+  let jaVoice = null;
+  let voicesChecked = false;
+  let activeEl = null;
+
+  function load(key, fallback) {
+    try { const v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+  }
+  function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+
+  slow = !!load("kixcard-slow", false);
+  slowBtn.setAttribute("aria-pressed", slow ? "true" : "false");
+
+  const LIMITS = { a: [1, 6], c: [0, 4], s: [0, 9], h: [0, 9] };
+  const prof = Object.assign({ a: 1, c: 0, s: 1, h: 0, flight: "" }, load("kixcard-profile", {}));
+  Object.keys(LIMITS).forEach(function (k) {
+    const v = parseInt(prof[k], 10);
+    prof[k] = isNaN(v) ? LIMITS[k][0] : Math.min(LIMITS[k][1], Math.max(LIMITS[k][0], v));
+  });
+  if (typeof prof.flight !== "string") prof.flight = "";
+
+  const SPK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+
+  function el(tag, cls, text, lang) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    if (lang) n.lang = lang;
+    return n;
+  }
+
+  // Builder phrases read the current on-device values
+  function built(kind) {
+    if (kind === "people") return KixBuild.people(prof.a, prof.c);
+    if (kind === "luggage") return KixBuild.luggage(prof.s, prof.h);
+    if (kind === "flight") return KixBuild.flight(prof.flight);
+    return null;
+  }
+  const builderNodes = [];
+
+  function fillPhrase(b, it) {
+    b.textContent = "";
+    b.setAttribute("aria-label", "唸出日文：" + it.zh);
+    b.appendChild(el("span", "zh", it.zh));
+    b.appendChild(el("span", "ja", it.ja, "ja"));
+    b.appendChild(el("span", "ro", it.ro, "ja-Latn"));
+    if (it.tagText) b.appendChild(el("span", "tag", it.tagText));
+    const s = el("span", "spk");
+    s.setAttribute("aria-hidden", "true");
+    s.innerHTML = SPK;
+    b.appendChild(s);
+  }
+
+  // Render reply groups
+  const chips = document.getElementById("chips");
+  const groups = document.getElementById("groups");
+  DATA.reply.forEach(function (g, gi) {
+    const gid = "g" + (gi + 1);
+    const a = el("a", "chip", g.group);
+    a.href = "#" + gid;
+    chips.appendChild(a);
+
+    const sec = el("section");
+    sec.id = gid;
+    sec.setAttribute("aria-labelledby", gid + "t");
+    const h = el("h2", null, g.group);
+    h.id = gid + "t";
+    sec.appendChild(h);
+    const grid = el("div", "grid");
+    g.items.forEach(function (it) {
+      const b = el("button", "phrase");
+      b.type = "button";
+      b.dataset.id = it.id;
+      if (it.builder) {
+        builderNodes.push({ node: b, kind: it.builder });
+        b.addEventListener("click", function () {
+          const cur = built(it.builder);
+          if (cur) speak(cur, b);
+        });
+      } else {
+        fillPhrase(b, it);
+        b.addEventListener("click", function () { speak(it, b); });
+      }
+      grid.appendChild(b);
+    });
+    sec.appendChild(grid);
+    groups.appendChild(sec);
+  });
+  const dChip = el("a", "chip", "司機可能說的話");
+  dChip.href = "#driver";
+  chips.appendChild(dChip);
+
+  function refreshBuilders() {
+    builderNodes.forEach(function (bn) {
+      const cur = built(bn.kind);
+      if (!cur) { bn.node.hidden = true; return; }
+      bn.node.hidden = false;
+      fillPhrase(bn.node, Object.assign({ tagText: "依「我的資料」" }, cur));
+    });
+  }
+
+  // Render driver lines
+  const heardList = document.getElementById("heardList");
+  DATA.driver.forEach(function (it) {
+    const b = el("button", "heard");
+    b.type = "button";
+    b.setAttribute("aria-label", "聽發音：" + it.zh);
+    b.appendChild(el("span", "ja", it.ja, "ja"));
+    b.appendChild(el("span", "zh", it.zh));
+    b.appendChild(el("span", "ro", it.ro, "ja-Latn"));
+    const s = el("span", "spk");
+    s.setAttribute("aria-hidden", "true");
+    s.innerHTML = SPK;
+    b.appendChild(s);
+    b.addEventListener("click", function () { speak(it, b); });
+    heardList.appendChild(b);
+  });
+
+  // On-device details
+  function bindStepper(k) {
+    const out = document.getElementById(k + "Val");
+    function show() { out.textContent = String(prof[k]); }
+    document.getElementById(k + "Minus").addEventListener("click", function () {
+      prof[k] = Math.max(LIMITS[k][0], prof[k] - 1); show(); save("kixcard-profile", prof); refreshBuilders();
+    });
+    document.getElementById(k + "Plus").addEventListener("click", function () {
+      prof[k] = Math.min(LIMITS[k][1], prof[k] + 1); show(); save("kixcard-profile", prof); refreshBuilders();
+    });
+    show();
+  }
+  ["a", "c", "s", "h"].forEach(bindStepper);
+
+  const flightInput = document.getElementById("flightInput");
+  const flightErr = document.getElementById("flightErr");
+  flightInput.value = prof.flight;
+  function onFlight() {
+    const raw = flightInput.value.trim();
+    prof.flight = raw;
+    flightErr.hidden = !raw || !!KixBuild.parseFlight(raw);
+    save("kixcard-profile", prof);
+    refreshBuilders();
+  }
+  flightInput.addEventListener("input", onFlight);
+  flightErr.hidden = !prof.flight || !!KixBuild.parseFlight(prof.flight);
+  refreshBuilders();
+
+  // Voices
+  function pickVoice() {
+    if (!synth) return;
+    const vs = synth.getVoices() || [];
+    if (!vs.length) return;
+    voicesChecked = true;
+    const ja = vs.filter(function (v) { return /^ja([-_]|$)/i.test(v.lang); });
+    jaVoice = ja.find(function (v) { return /Kyoko|O-?ren|Otoya|Hattori|Google/i.test(v.name); }) || ja[0] || null;
+    document.getElementById("noVoice").hidden = !!jaVoice;
+  }
+  if (!synth) {
+    document.getElementById("noSpeech").hidden = false;
+  } else {
+    pickVoice();
+    if (typeof synth.addEventListener === "function") synth.addEventListener("voiceschanged", pickVoice);
+    else synth.onvoiceschanged = pickVoice;
+    setTimeout(pickVoice, 600);
+  }
+
+  function clearActive() {
+    if (activeEl) activeEl.classList.remove("is-speaking");
+    activeEl = null;
+    nowLine.textContent = "點任何一句就會唸出日文。";
+  }
+  function setActive(node, it) {
+    if (activeEl && activeEl !== node) activeEl.classList.remove("is-speaking");
+    activeEl = node;
+    if (node) node.classList.add("is-speaking");
+    nowLine.textContent = "";
+    const st = document.createElement("strong");
+    st.textContent = "播放中：";
+    nowLine.appendChild(st);
+    nowLine.appendChild(document.createTextNode(it.zh));
+  }
+
+  function speak(it, node) {
+    if (!synth) { document.getElementById("noSpeech").hidden = false; return; }
+    if (!voicesChecked) pickVoice();
+    if (synth.speaking || synth.pending) synth.cancel();
+    const u = new SpeechSynthesisUtterance(it.say);
+    u.lang = "ja-JP";
+    if (jaVoice) u.voice = jaVoice;
+    u.rate = slow ? 0.72 : 0.92;
+    u.pitch = 1;
+    u.volume = 1;
+    u.onend = function () { if (activeEl === node) clearActive(); };
+    u.onerror = function () { if (activeEl === node) clearActive(); };
+    setActive(node, it);
+    synth.speak(u);
+  }
+
+  slowBtn.addEventListener("click", function () {
+    slow = !slow;
+    slowBtn.setAttribute("aria-pressed", slow ? "true" : "false");
+    save("kixcard-slow", slow);
+  });
+  document.getElementById("stopBtn").addEventListener("click", function () {
+    if (synth) synth.cancel();
+    clearActive();
+  });
+  document.getElementById("testBtn").addEventListener("click", function () {
+    speak({ zh: "測試：這是日文語音測試。", say: "これは、日本語の音声テストです。" }, null);
+  });
+
+  // Copy MK number
+  const copyHint = document.getElementById("copyHint");
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    const num = document.getElementById("mkNum").textContent.trim();
+    function selectIt() {
+      const r = document.createRange();
+      r.selectNodeContents(document.getElementById("mkNum"));
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+      copyHint.textContent = "已選取號碼，請長按後選「拷貝」。";
+    }
+    try {
+      navigator.clipboard.writeText(num).then(function () {
+        copyHint.textContent = "已複製 " + num + "，請到電話 App 貼上撥號。";
+      }, selectIt);
+    } catch (e) { selectIt(); }
+  });
+
+  // Screen wake lock
+  const wakeBtn = document.getElementById("wakeBtn");
+  const wakeHint = document.getElementById("wakeHint");
+  let lock = null;
+  wakeBtn.addEventListener("click", async function () {
+    if (lock) {
+      try { await lock.release(); } catch (e) {}
+      lock = null;
+      wakeBtn.setAttribute("aria-pressed", "false");
+      wakeBtn.textContent = "讓螢幕保持開啟";
+      wakeHint.textContent = "螢幕會照平常的設定自動關閉。";
+      return;
+    }
+    try {
+      lock = await navigator.wakeLock.request("screen");
+      wakeBtn.setAttribute("aria-pressed", "true");
+      wakeBtn.textContent = "螢幕保持開啟中";
+      wakeHint.textContent = "這一頁開著時螢幕不會自動關閉；切到別的 App 後要再按一次。";
+      lock.addEventListener("release", function () {
+        lock = null;
+        wakeBtn.setAttribute("aria-pressed", "false");
+        wakeBtn.textContent = "讓螢幕保持開啟";
+      });
+    } catch (e) {
+      lock = null;
+      wakeHint.textContent = "這裡無法鎖定螢幕。可以到「設定 > 螢幕顯示與亮度 > 自動鎖定」暫時調長。";
+    }
+  });
+
+  // Offline support
+  const badge = document.getElementById("offlineBadge");
+  const badgeText = document.getElementById("offlineText");
+  if ("serviceWorker" in navigator && window.isSecureContext) {
+    navigator.serviceWorker.register("./sw.js").then(function () {
+      return navigator.serviceWorker.ready;
+    }).then(function () {
+      badge.classList.add("ok");
+      badgeText.textContent = "已存到這台裝置，沒網路也能打開";
+    }).catch(function () {
+      badgeText.textContent = "離線功能沒有啟用，請在有網路時使用";
+    });
+  } else {
+    badgeText.textContent = "這個瀏覽器不支援離線使用";
+  }
+})();
+</script>
+</body>
+</html>
